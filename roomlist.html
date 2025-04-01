@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<style>
+  ul {margin:0;padding:0;}
+  .wrapper {
+    margin: 0 auto;
+    max-width: 500px;
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+<body>
+  <div class="wrapper">
+    <!-- ✅ Existed Room -->
+    <div class="roomlist-area">
+      <ul id="rooms">
+      </ul>
+    </div>
+    
+    <!-- ✅ Make Room -->
+    <div class="makeroom-area">
+      <label for="getRoom">Make room</label>
+      <input type="text" id="getRoom">
+      <button id="goGetRoom">Enter Room</button>
+    </div>
+  </div>
+</body>
+</html>
+
+<style>
+</style>
+
+<script>
+  const rooms = document.querySelector('#rooms');
+  const params = new URLSearchParams(window.location.search);
+  const username = params.get('username');
+
+  const ROOMNAMEINPUT = document.querySelector('#getRoom');
+  const ENTERROOMBUTTON = document.querySelector('#goGetRoom');
+
+  ROOMNAMEINPUT.addEventListener('keypress', (e) => {
+    if (e.key == 'Enter') {
+      goRoom(ROOMNAMEINPUT.value);
+      ROOMNAMEINPUT.value = '';
+    }
+  })
+
+  ENTERROOMBUTTON.addEventListener('click', () => {
+    // 
+    goRoom(ROOMNAMEINPUT.value);
+  });
+
+
+  const getRoomNames = async () => {
+    const res = await fetch('http://localhost:8085/chat/history/getRoomNames');
+    return await res.json();
+  }
+
+  const goRoom = (roomName) => {
+    location.href = `http://localhost:5500/index.html?roomNum=${roomName}&username=${username}`;
+  }
+
+  const drawRoomList = (res) => {
+    for (let a of res) {
+      rooms.innerHTML += `
+        <li onclick="goRoom('${a}')">
+          ${a}  
+        </li>
+      `
+    }
+  }
+
+  getRoomNames().then(drawRoomList);
+
+</script>

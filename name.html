@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div class="select-nickname">
+    <ul>
+      <li onclick="goSelectRoom('tomhoon')">Tomhoon</li>
+      <li onclick="goSelectRoom('radish')">Radish</li>
+      <li onclick="goSelectRoom('shane')">Shane</li>
+    </ul>
+  </div>
+
+
+  <label for="id">put your name</label>
+  <input type="text" id="nameplace">
+</body>
+</html>
+
+<script>
+  const goSelectRoom = (nickname) => {
+    location.href = `./roomlist.html?username=${nickname}`;
+  }
+
+  const nameplace = document.querySelector("#nameplace");
+  nameplace.addEventListener('keypress', (e) => {
+    if (e.key == 'Enter') {
+      goSelectRoom(e.target.value);
+    }
+  })  
+</script>
+
+

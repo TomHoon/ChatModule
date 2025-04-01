@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<style>
+    .wrapper {
+        margin: 0 auto;
+        max-width: 1000px;
+        display: flex;
+        justify-content: space-between;
+    }
+    #chat {
+        height: 500px;
+        overflow-y: scroll;
+    }
+    .mine {
+        text-align: right;
+    }
+    .mine span{
+        background-color: bisque;
+    }
+</style>
+<body>
+    
+    <div class="wrapper">
+        <div class="chat-area">
+            <div id="chat"></div>
+            <input type="text" id="message" placeholder="Type a message" />
+            <button id="send">Send</button>
+            
+            <button id="gethistory">
+                getHistory
+            </button>
+            
+            <div id="history">
+                
+            </div>
+        </div>
+
+        <div class="room-area">
+            <div id="roomlist">
+                
+            </div>
+        </div>
+
+        
+    </div>
+
+</body>
+</html>
+
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const ROOMNAME = params.get('roomNum');
+    const USERNAME = params.get('username');
+    const MESSAGE = document.getElementById("message");
+    const ROOMLIST = document.getElementById("roomlist");
+    const HISTORY = document.querySelector('#history');
+    const CHATAREA = document.querySelector('#chat');
+    const GETHISTORYBTN = document.querySelector('#gethistory');
+
+
+    const enterRoom = (roomName) => {
+        location.href = `http://localhost:5500/index.html?roomNum=${roomName}&username=${USERNAME}`;
+    }
+
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        
+        const _res = await fetch('http://localhost:8085/chat/history/getRoomNames');
+        const res = await _res.json();
+
+        for (let 방제 of res) {
+            ROOMLIST.innerHTML += `
+                <button onclick="enterRoom('${방제}')">${방제}</button>
+            `
+        }
+
+        
+        const _히스토리 = await fetch('http://localhost:8085/chat/history/getHistory?roomName='+ROOMNAME);
+        const 히스토리 = await _히스토리.json();
+
+        for (const msg of 히스토리) {
+            let 메세지 = '';
+            
+            const fixedStr = msg.replace(/(\w+):(\w+)/g, '"$1":"$2"'); // Add quotes
+            const obj = JSON.parse(fixedStr);
+
+            if (USERNAME == obj.sender) {
+                CHATAREA.innerHTML += `<p class='mine'><span>${obj.sender} : ${obj.message}</span></p>`
+            } else {
+                CHATAREA.innerHTML += `<p class='opposite'><span>${obj.sender} : ${obj.message}</span></p>`
+            }
+
+
+        }
+        CHATAREA.scrollTo(0, CHATAREA.scrollHeight);
+    });
+
+    MESSAGE.addEventListener('keypress', (e) => {
+        if (e.key == 'Enter') {
+            sendMsg();
+        }
+    })
+
+    
+    GETHISTORYBTN.addEventListener('click',async () => {
+        const res = await fetch('http://localhost:8085/chat/history/getHistory?roomName='+ROOMNAME);
+        const realRes = await res.json();
+        HISTORY.innerHTML = realRes;
+    })
+
+    let socket = new SockJS('http://localhost:8085/chat');  // Connect to the /ws WebSocket endpoint
+    let stompClient = Stomp.over(socket);  // Use STOMP over the WebSocket connection
+
+    // Connect to WebSocket and subscribe to /topic/chat
+    stompClient.connect({}, function (frame) {
+        stompClient.subscribe(`/topic/${ROOMNAME}`, function (message) {
+            let chatDiv = document.getElementById("chat");
+            chatDiv.innerHTML += transferSocketData(message);
+            CHATAREA.scrollTo(0, CHATAREA.scrollHeight);
+        });
+
+        stompClient.send('/app/sendMessage', {}, '........???');
+      });
+      
+      // Send message to the server when the 'Send' button is clicked
+      document.getElementById("send").onclick = function () {
+        sendMsg();
+    };
+
+    const sendMsg = () => {
+
+        
+        const chatMessage = {
+            sender: USERNAME,
+            roomName: ROOMNAME,
+            content: MESSAGE.value
+        }
+
+        stompClient.send('/app/send', {}, JSON.stringify(chatMessage));
+
+        MESSAGE.value = "";
+        CHATAREA.scrollTo(0, CHATAREA.scrollHeight);
+
+
+    }
+
+    const transferSocketData = (message) => {
+
+
+        const fixedStr = message.body.replace(/(\w+):(\w+)/g, '"$1":"$2"'); // Add quotes
+        const obj = JSON.parse(fixedStr);
+
+        return "<p>" + `${obj.sender}: ${obj.message}` + "</p>";
+
+    }
+</script>
